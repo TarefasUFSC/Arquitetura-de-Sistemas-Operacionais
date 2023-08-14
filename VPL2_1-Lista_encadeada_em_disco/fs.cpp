@@ -53,8 +53,7 @@ void readRegister(fstream *file, Registro *registro)
 
 void writeRegister(fstream *file, Registro *registro)
 {
-    char state[4];
-    state[0] = (registro->state) ? 1 : 0;
+    int state = registro->state ? 1 : 0;
     file->write((char *)&state, 4);
 
     file->write((char *)&registro->nome, 20);
@@ -83,14 +82,14 @@ void adiciona(std::string arquivoDaLista, std::string novoNome, std::string depo
 
     if (!file.is_open())
     {
-        cout << "Erro ao abrir o arquivo" << endl;
+        // cout << "Erro ao abrir o arquivo" << endl;
         exit(EXIT_FAILURE);
     }
 
     // le o header
     Header header;
     readHeader(&file, &header);
-    cout << "header.inicio: " << header.inicio << endl;
+    // cout << "header.inicio: " << header.inicio << endl;
 
     // le o arquivo para achar uma posição livre
     uint newAddr = sizeof(Header);
@@ -106,7 +105,7 @@ void adiciona(std::string arquivoDaLista, std::string novoNome, std::string depo
             file.seekg(newAddr);
         }
     }
-    cout << "newAddr: " << newAddr << endl;
+    // cout << "newAddr: " << newAddr << endl;
 
     // escreve o novo registro
     Registro registroNovo;
@@ -139,7 +138,7 @@ void adiciona(std::string arquivoDaLista, std::string novoNome, std::string depo
     }
 
     // substitui a informação de proximo do registro encontrado
-    printRegister(&registroEncontrado);
+    // printRegister(&registroEncontrado);
 
     uint addr = registroEncontrado.proximo;
     registroEncontrado.proximo = newAddr;
@@ -149,12 +148,12 @@ void adiciona(std::string arquivoDaLista, std::string novoNome, std::string depo
 
     file.seekg(addrRegistroEncontrado);
     readRegister(&file, &registroEncontrado);
-    printRegister(&registroEncontrado);
+    // printRegister(&registroEncontrado);
 
     // atualiza o proximo do novo registro para não quebrar a lista
     file.seekg(newAddr);
     readRegister(&file, &registroNovo);
-    printRegister(&registroNovo);
+    // printRegister(&registroNovo);
 
     registroNovo.proximo = addr;
     file.seekg(newAddr);
@@ -162,7 +161,7 @@ void adiciona(std::string arquivoDaLista, std::string novoNome, std::string depo
 
     file.seekg(newAddr);
     readRegister(&file, &registroNovo);
-    printRegister(&registroNovo);
+    // printRegister(&registroNovo);
 
     file.close();
 }
