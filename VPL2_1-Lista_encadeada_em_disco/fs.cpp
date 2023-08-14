@@ -110,7 +110,13 @@ void adiciona(std::string arquivoDaLista, std::string novoNome, std::string depo
     // escreve o novo registro
     Registro registroNovo;
     registroNovo.state = true;
-    strcpy(registroNovo.nome, novoNome.c_str());
+    for (int i = 0; i < 20; i++)
+    {
+        if (i < novoNome.length())
+            registroNovo.nome[i] = novoNome[i];
+        else
+            registroNovo.nome[i] = 0;
+    }
     registroNovo.proximo = 0;
 
     file.seekg(newAddr);
