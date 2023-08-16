@@ -77,9 +77,9 @@ void initFs(std::string fsFileName, int blockSize, int numBlocks, int numInodes)
     int indexVectorSize = sizeof(INODE) * numInodes;
     // calcula o tamanho do Vetor de Blocos
     int blockVectorSize = blockSize * numBlocks;
-    cout << "bitmapSize: " << bitmapSize << endl;
-    cout << "indexVectorSize: " << indexVectorSize << endl;
-    cout << "blockVectorSize: " << blockVectorSize << endl;
+    // cout << "bitmapSize: " << bitmapSize << endl;
+    // cout << "indexVectorSize: " << indexVectorSize << endl;
+    // cout << "blockVectorSize: " << blockVectorSize << endl;
     char *bitmap = new char[bitmapSize]{};
     char *indexVector = new char[indexVectorSize]{};
     char *blockVector = new char[blockVectorSize]{};

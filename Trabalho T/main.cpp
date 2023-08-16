@@ -19,17 +19,17 @@ TEST(FsTest, init021005)
     ASSERT_EQ(printSha256("fs2-10-5.bin.solucao"), std::string("F7:71:A2:19:63:85:52:25:AF:50:89:31:D7:BD:57:9E:BC:5E:3D:A2:85:4F:FE:41:B8:63:1A:5B:18:3F:0E:85"));
 }
 
-// TEST(FsTest, init011010)
-// {
-//     initFs("fs1-10-10.bin.solucao", 1, 10, 10);
-//     ASSERT_EQ(printSha256("fs1-10-10.bin.solucao"), std::string("F4:ED:F3:23:45:16:CA:BF:78:1A:BE:6F:EF:DB:7F:0F:BA:07:F5:88:D7:A5:CD:65:1F:18:A4:81:65:91:E3:F4"));
-// }
+TEST(FsTest, init011010)
+{
+    initFs("fs1-10-10.bin.solucao", 1, 10, 10);
+    ASSERT_EQ(printSha256("fs1-10-10.bin.solucao"), std::string("F4:ED:F3:23:45:16:CA:BF:78:1A:BE:6F:EF:DB:7F:0F:BA:07:F5:88:D7:A5:CD:65:1F:18:A4:81:65:91:E3:F4"));
+}
 
-// TEST(FsTest, case3)
-// {
-//     initFs("fs4-32-16.bin.solucao", 4, 32, 16);
-//     ASSERT_EQ(printSha256("fs4-32-16.bin.solucao"), std::string("A2:71:21:00:D1:4C:10:94:C9:A0:0A:BD:03:E7:25:38:EA:3E:04:07:57:E4:02:87:5F:7D:1F:B7:35:6D:FE:E4"));
-// }
+TEST(FsTest, case3)
+{
+    initFs("fs4-32-16.bin.solucao", 4, 32, 16);
+    ASSERT_EQ(printSha256("fs4-32-16.bin.solucao"), std::string("A2:71:21:00:D1:4C:10:94:C9:A0:0A:BD:03:E7:25:38:EA:3E:04:07:57:E4:02:87:5F:7D:1F:B7:35:6D:FE:E4"));
+}
 
 // TEST(FsTest, case4)
 // {
