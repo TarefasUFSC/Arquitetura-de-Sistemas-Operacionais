@@ -87,26 +87,87 @@ void initFs(std::string fsFileName, int blockSize, int numBlocks, int numInodes)
 
     initializeStorage(file, bitmap, bitmapSize, indexVector, indexVectorSize, dirRaiz, blockVector, blockVectorSize);
 
-    INODE inode{};
-    inode.IS_DIR = 1;
-    inode.IS_USED = 1;
-    inode.NAME[0] = '/';
+    INODE new_inode{};
+    new_inode.IS_DIR = 1;
+    new_inode.IS_USED = 1;
+    new_inode.NAME[0] = '/';
+    new_inode.size = 0;
 
     bitmap[0] = 1;
     changeBitmap(file, bitmap, bitmapSize);
 
-    changeInodeAtIndex(file, inode, 0, bitmapSize, indexVectorSize);
+    changeInodeAtIndex(file, new_inode, 0, bitmapSize, indexVectorSize);
 
     file.close();
 }
 
+void handleLoadFileSystemVariables(fstream &file, int &blockSize, int &numBlocks, int &numInodes, int &bitmapSize, int &indexVectorSize, int &blockVectorSize)
+{
+    file.seekg(0);
+    file.read((char *)&blockSize, sizeof(char));
+    file.read((char *)&numBlocks, sizeof(char));
+    file.read((char *)&numInodes, sizeof(char));
+
+    bitmapSize = ceil((float)numBlocks / 8.0);
+    indexVectorSize = sizeof(INODE) * numInodes;
+    blockVectorSize = blockSize * numBlocks;
+}
+void handleLoadFileSystemSections(fstream &file, char *bitmap, int bitmapSize, char *indexVector, int indexVectorSize, char *dirRaiz, char *blockVector, int blockVectorSize)
+{
+    file.seekg(3);
+    file.read(bitmap, bitmapSize);
+    file.read(indexVector, indexVectorSize);
+    file.read(dirRaiz, 1);
+    file.read(blockVector, blockVectorSize);
+}
 /**
  * @brief Adiciona um novo arquivo dentro do sistema de arquivos que simula EXT3. O sistema já deve ter sido inicializado.
  * @param fsFileName arquivo que contém um sistema sistema de arquivos que simula EXT3.
  * @param filePath caminho completo novo arquivo dentro sistema de arquivos que simula EXT3.
  * @param fileContent conteúdo do novo arquivo
  */
-void addFile(std::string fsFileName, std::string filePath, std::string fileContent) {}
+void addFile(std::string fsFileName, std::string filePath, std::string fileContent)
+{
+
+    // abre o arquivo
+    fstream file;
+    handleFileOpening(file, fsFileName);
+
+    int blockSize, numBlocks, numInodes, bitmapSize, indexVectorSize, blockVectorSize;
+    handleLoadFileSystemVariables(file, blockSize, numBlocks, numInodes, bitmapSize, indexVectorSize, blockVectorSize);
+
+    char *bitmap = new char[bitmapSize]{};
+    char *indexVector = new char[indexVectorSize]{};
+    char *blockVector = new char[blockVectorSize]{};
+
+    INODE inode{};
+    inode.IS_DIR = 0;
+    inode.IS_USED = 1;
+    for (int i = 0; i < filePath.size(); i++)
+    {
+        inode.NAME[i] = filePath[i];
+    }
+    inode.size = fileContent.size();
+
+    // procura no bitmap um bloco livre
+    // se não encontrar, retorna erro
+    // se encontrar, marca como ocupado
+
+    int index_livre = 1; // começa no 1 pq eu já sei que o 0 é o dir raiz
+    // descobre a posição do primeiro bit 0 do bitmap
+    for (int i = 0; i < bitmapSize; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            if ((bitmap[i] & (1 << j)) == 0)
+            {
+                index_livre = i * 8 + j;
+                break;
+            }
+        }
+    }
+    cout << "index_livre: " << index_livre << endl;
+}
 
 /**
  * @brief Adiciona um novo diretório dentro do sistema de arquivos que simula EXT3. O sistema já deve ter sido inicializado.
