@@ -31,14 +31,14 @@ TEST(FsTest, case3)
     ASSERT_EQ(printSha256("fs4-32-16.bin.solucao"), std::string("A2:71:21:00:D1:4C:10:94:C9:A0:0A:BD:03:E7:25:38:EA:3E:04:07:57:E4:02:87:5F:7D:1F:B7:35:6D:FE:E4"));
 }
 
-// TEST(FsTest, case4)
-// {
+TEST(FsTest, case4)
+{
 
-//     duplicate("fs-case4.bin", "fs-case4.bin.solucao");
+    duplicate("fs-case4.bin", "fs-case4.bin.solucao");
 
-//     addFile("fs-case4.bin.solucao", "/teste.txt", "abc");
-//     ASSERT_EQ(printSha256("fs-case4.bin.solucao"), std::string("AA:29:B7:CF:09:B6:32:0E:6B:20:51:ED:FD:8E:40:FB:B0:A8:71:FA:8A:22:0A:06:F4:E1:E4:69:0A:C6:B2:77"));
-// }
+    addFile("fs-case4.bin.solucao", "/teste.txt", "abc");
+    ASSERT_EQ(printSha256("fs-case4.bin.solucao"), std::string("AA:29:B7:CF:09:B6:32:0E:6B:20:51:ED:FD:8E:40:FB:B0:A8:71:FA:8A:22:0A:06:F4:E1:E4:69:0A:C6:B2:77"));
+}
 
 // TEST(FsTest, case5)
 // {

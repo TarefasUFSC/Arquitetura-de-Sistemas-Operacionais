@@ -9,12 +9,19 @@
 
 using namespace std;
 
-void handleFileOpening(fstream &file, std::string fsFileName)
+void handleFileOpening(fstream &file, const std::string &fsFileName)
 {
-    // abre o arquivo, ou cria se não existir
-    file.open(fsFileName, ios::out | ios::in | ios::binary | ios::trunc);
+    // Tenta abrir o arquivo sem truncar
+    file.open(fsFileName, ios::out | ios::in | ios::binary);
 
-    // verifica se não conseguimos abrir o arquivo
+    // Se não conseguiu abrir, tenta criar o arquivo
+    if (!file.is_open())
+    {
+        file.clear(); // Limpa os flags de erro
+        file.open(fsFileName, ios::out | ios::in | ios::binary | ios::trunc);
+    }
+
+    // Verifica se ainda não conseguimos abrir o arquivo
     if (!file.is_open())
     {
         cout << "Não foi possível abrir o arquivo" << endl;
@@ -91,7 +98,7 @@ void initFs(std::string fsFileName, int blockSize, int numBlocks, int numInodes)
     new_inode.IS_DIR = 1;
     new_inode.IS_USED = 1;
     new_inode.NAME[0] = '/';
-    new_inode.size = 0;
+    new_inode.SIZE = 0;
 
     bitmap[0] = 1;
     changeBitmap(file, bitmap, bitmapSize);
@@ -111,6 +118,14 @@ void handleLoadFileSystemVariables(fstream &file, int &blockSize, int &numBlocks
     bitmapSize = ceil((float)numBlocks / 8.0);
     indexVectorSize = sizeof(INODE) * numInodes;
     blockVectorSize = blockSize * numBlocks;
+
+    cout << "blockSize: " << blockSize << endl;
+    cout << "numBlocks: " << numBlocks << endl;
+    cout << "numInodes: " << numInodes << endl;
+
+    cout << "bitmapSize: " << bitmapSize << endl;
+    cout << "indexVectorSize: " << indexVectorSize << endl;
+    cout << "blockVectorSize: " << blockVectorSize << endl;
 }
 void handleLoadFileSystemSections(fstream &file, char *bitmap, int bitmapSize, char *indexVector, int indexVectorSize, char *dirRaiz, char *blockVector, int blockVectorSize)
 {
@@ -120,6 +135,25 @@ void handleLoadFileSystemSections(fstream &file, char *bitmap, int bitmapSize, c
     file.read(dirRaiz, 1);
     file.read(blockVector, blockVectorSize);
 }
+int findFirstFreeBlockInTheBitmap(char *bitmap, int bitmapSize)
+{
+    int index_livre = 0;
+    cout << "bitmapsize: " << bitmapSize << endl;
+    // descobre a posição do primeiro bit 0 do bitmap
+    for (int i = 0; i < bitmapSize; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            if ((bitmap[i] & (1 << j)) == 0)
+            {
+                index_livre = i * 8 + j;
+                break;
+            }
+        }
+    }
+    return index_livre;
+}
+
 /**
  * @brief Adiciona um novo arquivo dentro do sistema de arquivos que simula EXT3. O sistema já deve ter sido inicializado.
  * @param fsFileName arquivo que contém um sistema sistema de arquivos que simula EXT3.
@@ -147,25 +181,13 @@ void addFile(std::string fsFileName, std::string filePath, std::string fileConte
     {
         inode.NAME[i] = filePath[i];
     }
-    inode.size = fileContent.size();
+    inode.SIZE = fileContent.size();
 
     // procura no bitmap um bloco livre
     // se não encontrar, retorna erro
     // se encontrar, marca como ocupado
 
-    int index_livre = 1; // começa no 1 pq eu já sei que o 0 é o dir raiz
-    // descobre a posição do primeiro bit 0 do bitmap
-    for (int i = 0; i < bitmapSize; i++)
-    {
-        for (int j = 0; j < 8; j++)
-        {
-            if ((bitmap[i] & (1 << j)) == 0)
-            {
-                index_livre = i * 8 + j;
-                break;
-            }
-        }
-    }
+    int index_livre = findFirstFreeBlockInTheBitmap(bitmap, bitmapSize);
     cout << "index_livre: " << index_livre << endl;
 }
 
