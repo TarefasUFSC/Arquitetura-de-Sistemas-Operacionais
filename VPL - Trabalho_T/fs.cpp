@@ -41,7 +41,7 @@ void writeSizesOnHeader(fstream &file, int blockSize, int numBlocks, int numInod
 void initializeStorage(fstream &file, char *bitmap, int bitmapSize, char *indexVector, int indexVectorSize, char *dirRaiz, char *blockVector, int blockVectorSize)
 {
 
-    file.seekp(3);
+    file.seekg(3);
     // escreve o bitmap
     file.write(bitmap, bitmapSize);
     // escreve o vetor de indices
@@ -54,13 +54,13 @@ void initializeStorage(fstream &file, char *bitmap, int bitmapSize, char *indexV
 
 void changeBitmap(fstream &file, char *bitmap, int bitmapSize)
 {
-    file.seekp(3);
+    file.seekg(3);
     file.write(bitmap, bitmapSize);
 }
 
 void changeInodeAtIndex(fstream &file, INODE inode, int index, int bitmapSize, int indexVectorSize)
 {
-    file.seekp(3 + bitmapSize + index * sizeof(INODE));
+    file.seekg(3 + bitmapSize + index * sizeof(INODE));
     file.write((char *)&inode, sizeof(INODE));
 }
 
@@ -127,13 +127,15 @@ void handleLoadFileSystemVariables(fstream &file, int &blockSize, int &numBlocks
     cout << "indexVectorSize: " << indexVectorSize << endl;
     cout << "blockVectorSize: " << blockVectorSize << endl;
 }
-void handleLoadFileSystemSections(fstream &file, char *bitmap, int bitmapSize, char *indexVector, int indexVectorSize, char *dirRaiz, char *blockVector, int blockVectorSize)
+void handleLoadFileSystemSections(fstream &file, char &bitmap, int bitmapSize, char &indexVector, int indexVectorSize, char &dirRaiz, int blockSize)
 {
     file.seekg(3);
-    file.read(bitmap, bitmapSize);
-    file.read(indexVector, indexVectorSize);
-    file.read(dirRaiz, 1);
-    file.read(blockVector, blockVectorSize);
+    file.read((char *)&bitmap, bitmapSize);
+    file.read((char *)&indexVector, indexVectorSize);
+    file.read((char *)&dirRaiz, blockSize);
+    // file.read((char *)&blockVector, blockVectorSize); // ELE CHEGA NO FIM DO ARQUIVO AI BUGA
+
+    cout << "bitmap: " << (int)bitmap << endl;
 }
 int findFirstFreeBlockInTheBitmap(char *bitmap, int bitmapSize)
 {
@@ -154,6 +156,46 @@ int findFirstFreeBlockInTheBitmap(char *bitmap, int bitmapSize)
     return index_livre;
 }
 
+void populateInodeBlockAddresses(INODE &inode, int *dataBlocksAddresses, int qtd, int blockSize, int indexVectorSize, int bitmapSize)
+{
+    if (qtd > 3)
+    {
+        // vai ter que usar indireto
+    }
+    else
+    {
+        for (int i = 0; i < qtd; i++)
+        {
+            inode.DIRECT_BLOCKS[i] = dataBlocksAddresses[i];
+        }
+    }
+}
+
+int findFirstFreeInodeBlockAddress(fstream &file, char *indexVector, int bitmapSize)
+{
+    // Certifique-se de que a posição de leitura está correta
+    file.seekg(3 + bitmapSize);
+
+    int index_livre = 0;
+    INODE inode{};
+
+    while (1)
+    {
+        file.read((char *)&inode, sizeof(INODE));
+
+        if (inode.IS_USED == 0)
+        {
+            cout << "IS_USED: " << (int)inode.IS_USED << endl;
+            cout << "IS_DIR: " << (int)inode.IS_DIR << endl;
+            cout << "NAME: " << inode.NAME << endl;
+            break;
+        }
+        index_livre++;
+    }
+    cout << "index_livre_inode: " << index_livre << endl;
+    return index_livre;
+}
+
 /**
  * @brief Adiciona um novo arquivo dentro do sistema de arquivos que simula EXT3. O sistema já deve ter sido inicializado.
  * @param fsFileName arquivo que contém um sistema sistema de arquivos que simula EXT3.
@@ -167,28 +209,85 @@ void addFile(std::string fsFileName, std::string filePath, std::string fileConte
     fstream file;
     handleFileOpening(file, fsFileName);
 
-    int blockSize, numBlocks, numInodes, bitmapSize, indexVectorSize, blockVectorSize;
+    int blockSize{}, numBlocks{}, numInodes{}, bitmapSize{}, indexVectorSize{}, blockVectorSize{};
     handleLoadFileSystemVariables(file, blockSize, numBlocks, numInodes, bitmapSize, indexVectorSize, blockVectorSize);
 
     char *bitmap = new char[bitmapSize]{};
     char *indexVector = new char[indexVectorSize]{};
-    char *blockVector = new char[blockVectorSize]{};
+    char *dirRaiz = new char[blockSize]{};
+
+    handleLoadFileSystemSections(file, *bitmap, bitmapSize, *indexVector, indexVectorSize, *dirRaiz, blockSize);
 
     INODE inode{};
     inode.IS_DIR = 0;
     inode.IS_USED = 1;
+    // pega o nome do arquivo
+    // pega tudo depois do ultimo /
+
+    string father = filePath.substr(0, filePath.find_last_of("/")) == "" ? "/" : filePath.substr(0, filePath.find_last_of("/"));
+    cout << "father: " << father << endl;
+    filePath = filePath.substr(filePath.find_last_of("/") + 1);
     for (int i = 0; i < filePath.size(); i++)
     {
         inode.NAME[i] = filePath[i];
     }
     inode.SIZE = fileContent.size();
 
-    // procura no bitmap um bloco livre
-    // se não encontrar, retorna erro
-    // se encontrar, marca como ocupado
+    // aloca os dados do arquivo no bloco
 
-    int index_livre = findFirstFreeBlockInTheBitmap(bitmap, bitmapSize);
-    cout << "index_livre: " << index_livre << endl;
+    int tamanho = fileContent.size();
+    char *dataBlocks = new char[tamanho]{};
+    for (int i = 0; i < tamanho; i++)
+    {
+        dataBlocks[i] = fileContent[i];
+    }
+    int qtdBlocosNecessarios = ceil((float)tamanho / (float)blockSize);
+    cout << "qtdBlocosNecessarios: " << qtdBlocosNecessarios << endl;
+    int dataBlocksAddresses[qtdBlocosNecessarios];
+
+    for (int i = 0; i < qtdBlocosNecessarios; i++)
+    {
+        int index_livre = findFirstFreeBlockInTheBitmap(bitmap, bitmapSize);
+        bitmap[(int)(index_livre / 8.0)] |= (1 << (index_livre % 8));
+        dataBlocksAddresses[i] = index_livre;
+    }
+
+    populateInodeBlockAddresses(inode, dataBlocksAddresses, qtdBlocosNecessarios, blockSize, indexVectorSize, bitmapSize);
+
+    changeBitmap(file, bitmap, bitmapSize);
+
+    // procura um bloco inode livre
+    int index_livre_inode = findFirstFreeInodeBlockAddress(file, indexVector, bitmapSize);
+    changeInodeAtIndex(file, inode, index_livre_inode, bitmapSize, indexVectorSize);
+
+    // escreve os dados do arquivo nos blocos
+    int dados[qtdBlocosNecessarios]{};
+    for (int i = 0; i < tamanho; i++)
+    {
+        int position = (int)floor((float)i / (float)blockSize);
+        cout << "i: " << i << endl;
+        cout << "position: " << position << endl;
+        cout << "dataBlocks[i]: " << dataBlocks[i] << endl;
+        dados[position] = (dataBlocks[i] << (8 * (i % blockSize))) | dados[position];
+    }
+
+    // escreve os dados do arquivo nos blocos
+    for (int i = 0; i < qtdBlocosNecessarios; i++)
+    {
+        cout << "dataBlocksAddresses[i]: " << dataBlocksAddresses[i] << endl;
+        cout << "blockSize: " << blockSize << endl;
+        cout << "dados[i]: " << dados[i] << endl;
+        file.seekg(3 + bitmapSize + indexVectorSize + blockSize * dataBlocksAddresses[i]);
+        file.write((char *)&dados[i], blockSize);
+    }
+
+    // escreve o endereço do inode do arquivo novo no diretório raiz
+    file.seekg(3 + bitmapSize + indexVectorSize);
+    int address = 3 + bitmapSize + sizeof(INODE) * index_livre_inode;
+    cout << "address: " << address << endl;
+    file.write((char *)&index_livre_inode, sizeof(char));
+
+    file.close();
 }
 
 /**
