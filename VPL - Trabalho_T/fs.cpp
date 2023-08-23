@@ -222,6 +222,28 @@ INODE getInodeByNAME(fstream &file, string name, int bitmapSize, int indexVector
     return inode;
 }
 
+string getFatherName(string path)
+{
+    string father = path.substr(0, path.find_last_of("/")) == "" ? "/" : path.substr(0, path.find_last_of("/"));
+    if (father != "/")
+    {
+        father = father.substr(1, father.size());
+    }
+    return father;
+}
+
+string getFileName(string path)
+{
+    string fileName = path.substr(path.find_last_of("/") + 1, path.size());
+    return fileName;
+}
+
+void writeInAddress(fstream &file, int address, int size, char *content)
+{
+    file.seekg(address);
+    file.write(content, size);
+}
+
 /**
  * @brief Adiciona um novo arquivo dentro do sistema de arquivos que simula EXT3. O sistema já deve ter sido inicializado.
  * @param fsFileName arquivo que contém um sistema sistema de arquivos que simula EXT3.
@@ -250,12 +272,14 @@ void addFile(std::string fsFileName, std::string filePath, std::string fileConte
     // pega o nome do arquivo
     // pega tudo depois do ultimo /
 
-    string father = filePath.substr(0, filePath.find_last_of("/")) == "" ? "/" : filePath.substr(0, filePath.find_last_of("/"));
-    // cout << "father: " << father << endl;
-    filePath = filePath.substr(filePath.find_last_of("/") + 1);
-    for (int i = 0; i < filePath.size(); i++)
+    string father = getFatherName(filePath);
+    cout << "father: " << father << endl;
+    string fileName = getFileName(filePath);
+    cout << "fileName: " << fileName << endl;
+
+    for (int i = 0; i < fileName.size(); i++)
     {
-        inode.NAME[i] = filePath[i];
+        inode.NAME[i] = fileName[i];
     }
     inode.SIZE = fileContent.size();
 
@@ -292,13 +316,11 @@ void addFile(std::string fsFileName, std::string filePath, std::string fileConte
     }
 
     // escreve os dados do arquivo nos blocos
-    file.seekg(3 + bitmapSize + indexVectorSize + blockSize * dataBlocksAddresses[0]);
-    file.write((char *)&newDataBlocks, blockSize * qtdBlocosNecessarios);
+    writeInAddress(file, 3 + bitmapSize + indexVectorSize + blockSize * dataBlocksAddresses[0], blockSize * qtdBlocosNecessarios, (char *)&newDataBlocks);
 
+    // O ERRO TA AQUI PQ EU TO SEMPRE ESCREVENDO O ENDEREÇO DO NOVO ARQUIVO NO DIRETORIO RAIZ!!! EU TENHO QUE ACHAR O ENDEREÇO DOS DATABLOCS DO DIRETORIO FATHER E AI ESCREVER NOS BLOCOS DELE O NOVO ENDEREÇO QUE FOI CRIADO
     // escreve o endereço do inode do arquivo novo no diretório raiz
-    file.seekg(3 + bitmapSize + indexVectorSize + 1);
-    // cout << "address: " << address << endl;
-    file.write((char *)&index_livre_inode, blockSize);
+    writeInAddress(file, 3 + bitmapSize + indexVectorSize + 1, blockSize, (char *)&index_livre_inode);
 
     // tem que achar o inode do pai e incrementar o tamanho dele
     int fatherPosition = 0;
