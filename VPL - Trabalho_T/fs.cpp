@@ -156,6 +156,19 @@ int findFirstFreeBlockInTheBitmap(char *bitmap, int bitmapSize)
     return index_livre;
 }
 
+void addDataBlockIntoAInode(INODE &inode, int dataBlockAddress, int blockSize, int indexVectorSize, int bitmapSize)
+{
+    // verifica se tem espaço para adicionar mais um bloco direto
+    for (int i = 0; i < 3; i++)
+    {
+        if (inode.DIRECT_BLOCKS[i] == 0)
+        {
+            inode.DIRECT_BLOCKS[i] = dataBlockAddress;
+            break;
+        }
+    }
+}
+
 void populateInodeBlockAddresses(INODE &inode, int *dataBlocksAddresses, int qtd, int blockSize, int indexVectorSize, int bitmapSize)
 {
     if (qtd > 3)
@@ -166,7 +179,8 @@ void populateInodeBlockAddresses(INODE &inode, int *dataBlocksAddresses, int qtd
     {
         for (int i = 0; i < qtd; i++)
         {
-            inode.DIRECT_BLOCKS[i] = dataBlocksAddresses[i];
+            // inode.DIRECT_BLOCKS[i] = dataBlocksAddresses[i];
+            addDataBlockIntoAInode(inode, dataBlocksAddresses[i], blockSize, indexVectorSize, bitmapSize);
         }
     }
 }
@@ -318,10 +332,6 @@ void addFile(std::string fsFileName, std::string filePath, std::string fileConte
     // escreve os dados do arquivo nos blocos
     writeInAddress(file, 3 + bitmapSize + indexVectorSize + blockSize * dataBlocksAddresses[0], blockSize * qtdBlocosNecessarios, (char *)&newDataBlocks);
 
-    // O ERRO TA AQUI PQ EU TO SEMPRE ESCREVENDO O ENDEREÇO DO NOVO ARQUIVO NO DIRETORIO RAIZ!!! EU TENHO QUE ACHAR O ENDEREÇO DOS DATABLOCS DO DIRETORIO FATHER E AI ESCREVER NOS BLOCOS DELE O NOVO ENDEREÇO QUE FOI CRIADO
-    // escreve o endereço do inode do arquivo novo no diretório raiz
-    writeInAddress(file, 3 + bitmapSize + indexVectorSize + 1, blockSize, (char *)&index_livre_inode);
-
     // tem que achar o inode do pai e incrementar o tamanho dele
     int fatherPosition = 0;
     INODE fatherInode = getInodeByNAME(file, father, bitmapSize, indexVectorSize, fatherPosition);
@@ -329,6 +339,10 @@ void addFile(std::string fsFileName, std::string filePath, std::string fileConte
     if (fatherInode.IS_USED == 1)
     {
         fatherInode.SIZE++;
+        
+        // procura o primeiro bloco livre do pai
+        
+
         changeInodeAtIndex(file, fatherInode, fatherPosition, bitmapSize);
     }
     else
