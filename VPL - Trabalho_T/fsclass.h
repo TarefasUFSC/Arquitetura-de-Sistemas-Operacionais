@@ -146,9 +146,9 @@ private:
     void setBitmapAtIndex(int index)
     {
         char *bitmap = this->getBitmap();
-        cout << "old bitmap: " << (int)bitmap[0] << endl;
+        // cout << "old bitmap: " << (int)bitmap[0] << endl;
         bitmap[(int)(index / 8.0)] |= (1 << (index % 8));
-        cout << "new bitmap: " << (int)bitmap[0] << endl;
+        // cout << "new bitmap: " << (int)bitmap[0] << endl;
         this->saveBitmap(bitmap);
     }
     void freeBitmapAtIndex(int index)
@@ -196,23 +196,23 @@ private:
         // verifica se a quantidade atual + 1 precisa alocar mais um bloco
         int new_qtd_necessaria = ceil((float)(inode.SIZE + 1) / (float)this->blockSize);
         int old_qtd_necessaria = ceil((float)(inode.SIZE) / (float)this->blockSize);
-        cout << "new_qtd_necessaria: " << new_qtd_necessaria << endl;
-        cout << "old_qtd_necessaria: " << old_qtd_necessaria << endl;
+        // cout << "new_qtd_necessaria: " << new_qtd_necessaria << endl;
+        // cout << "old_qtd_necessaria: " << old_qtd_necessaria << endl;
 
         if ((new_qtd_necessaria > old_qtd_necessaria) and !(old_qtd_necessaria == 0 and inode.IS_DIR == 1))
         {
             // aloca mais um bloco
             int index_livre = this->findFirstFreeBlockInTheBitmap();
-            cout << "index_livre: " << index_livre << endl;
+            // cout << "index_livre: " << index_livre << endl;
             this->setBitmapAtIndex(index_livre);
             inode = this->appendDataIntoInode(inode, (char)index_livre);
         }
         // pega o endereço do ultimo bloco
         int last_block_index = inode.DIRECT_BLOCKS[new_qtd_necessaria - 1];
 
-        cout << "last_block_index: " << last_block_index << endl;
-        cout << "data: " << data << " | " << (int)data << endl
-             << endl;
+        // cout << "last_block_index: " << last_block_index << endl;
+        // cout << "data: " << data << " | " << (int)data << endl
+        // << endl;
         char *data_block = this->readDataBlockAtIndex(last_block_index);
         // encontra o primeiro byte vazio
         int first_empty_byte = 0;
@@ -305,7 +305,7 @@ private:
 
         // adiciona o inode do arquivo no inode do pai
         // father_dir_inode.SIZE++;
-        cout << "adicionando o endereço do inode do arquivo no inode do pai" << endl;
+        // cout << "adicionando o endereço do inode do arquivo no inode do pai" << endl;
         father_dir_inode = this->insertDataIntoInodeBlock(father_dir_inode, (char)file_inode_index);
         // cout << "Endereço adicionado" << endl;
 
@@ -319,8 +319,8 @@ private:
         int file_inode_index = this->getInodeIndexByName(file_name);
         INODE file_inode = this->getInodeAtIndex(file_inode_index);
 
-        cout << endl
-             << "adicionando o conteudo do arquivo no inode do arquivo" << endl;
+        // cout << endl
+        //      << "adicionando o conteudo do arquivo no inode do arquivo" << endl;
         for (int i = 0; i < content.size(); i++)
         {
             file_inode = this->insertDataIntoInodeBlock(file_inode, content[i]);
