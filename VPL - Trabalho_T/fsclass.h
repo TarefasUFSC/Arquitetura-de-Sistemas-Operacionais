@@ -191,7 +191,7 @@ private:
         this->fsFile.seekg(3 + this->bitmapSize + this->indexVectorSize + 1 + index * this->blockSize);
         this->fsFile.write(data, this->blockSize);
     }
-    INODE insertDataIntoInodeBlock(INODE inode, char data, bool is_root)
+    INODE insertDataIntoInodeBlock(INODE inode, char data)
     {
         // verifica se a quantidade atual + 1 precisa alocar mais um bloco
         int new_qtd_necessaria = ceil((float)(inode.SIZE + 1) / (float)this->blockSize);
@@ -199,7 +199,7 @@ private:
         cout << "new_qtd_necessaria: " << new_qtd_necessaria << endl;
         cout << "old_qtd_necessaria: " << old_qtd_necessaria << endl;
 
-        if ((new_qtd_necessaria > old_qtd_necessaria) and !is_root)
+        if ((new_qtd_necessaria > old_qtd_necessaria) and !(old_qtd_necessaria == 0 and inode.IS_DIR == 1))
         {
             // aloca mais um bloco
             int index_livre = this->findFirstFreeBlockInTheBitmap();
@@ -211,7 +211,7 @@ private:
         int last_block_index = inode.DIRECT_BLOCKS[new_qtd_necessaria - 1];
 
         cout << "last_block_index: " << last_block_index << endl;
-        cout << "data: " << data << endl
+        cout << "data: " << data << " | " << (int)data << endl
              << endl;
         char *data_block = this->readDataBlockAtIndex(last_block_index);
         // encontra o primeiro byte vazio
@@ -305,7 +305,8 @@ private:
 
         // adiciona o inode do arquivo no inode do pai
         // father_dir_inode.SIZE++;
-        father_dir_inode = this->insertDataIntoInodeBlock(father_dir_inode, (char)file_inode_index, path == "/");
+        cout << "adicionando o endereço do inode do arquivo no inode do pai" << endl;
+        father_dir_inode = this->insertDataIntoInodeBlock(father_dir_inode, (char)file_inode_index);
         // cout << "Endereço adicionado" << endl;
 
         // escreve o inode do pai no arquivo
@@ -318,9 +319,11 @@ private:
         int file_inode_index = this->getInodeIndexByName(file_name);
         INODE file_inode = this->getInodeAtIndex(file_inode_index);
 
+        cout << endl
+             << "adicionando o conteudo do arquivo no inode do arquivo" << endl;
         for (int i = 0; i < content.size(); i++)
         {
-            file_inode = this->insertDataIntoInodeBlock(file_inode, content[i], false);
+            file_inode = this->insertDataIntoInodeBlock(file_inode, content[i]);
         }
 
         // escreve o inode do arquivo no arquivo
