@@ -40,13 +40,13 @@ TEST(FsTest, case4)
     ASSERT_EQ(printSha256("fs-case4.bin.solucao"), std::string("AA:29:B7:CF:09:B6:32:0E:6B:20:51:ED:FD:8E:40:FB:B0:A8:71:FA:8A:22:0A:06:F4:E1:E4:69:0A:C6:B2:77"));
 }
 
-// TEST(FsTest, case5)
-// {
-//     duplicate("fs-case5.bin", "fs-case5.bin.solucao");
+TEST(FsTest, case5)
+{
+    duplicate("fs-case5.bin", "fs-case5.bin.solucao");
 
-//     addDir("fs-case5.bin.solucao", "/dec7556");
-//     ASSERT_EQ(printSha256("fs-case5.bin.solucao"), std::string("0B:BB:60:5C:52:BC:0D:4F:5C:2C:B8:AA:2D:F5:F6:43:7A:EC:02:80:72:F2:D7:C3:7B:91:A6:FE:9E:4C:B6:44"));
-// }
+    addDir("fs-case5.bin.solucao", "/dec7556");
+    ASSERT_EQ(printSha256("fs-case5.bin.solucao"), std::string("0B:BB:60:5C:52:BC:0D:4F:5C:2C:B8:AA:2D:F5:F6:43:7A:EC:02:80:72:F2:D7:C3:7B:91:A6:FE:9E:4C:B6:44"));
+}
 
 TEST(FsTest, case6)
 {

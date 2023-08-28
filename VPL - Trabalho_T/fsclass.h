@@ -97,6 +97,7 @@ private:
     int findFirstFreeBlockInTheBitmap()
     {
         char *bitmap = this->getBitmap();
+        cout << "bitmap: " << (int)bitmap[0] << endl;
         int index_livre = 0;
         // cout << "bitmapSize: " << this->bitmapSize << endl;
         // descobre a posição do primeiro bit 0 do bitmap
@@ -107,7 +108,7 @@ private:
                 if ((bitmap[i] & (1 << j)) == 0)
                 {
                     index_livre = i * 8 + j;
-                    break;
+                    return index_livre;
                 }
             }
         }
@@ -274,13 +275,20 @@ private:
     }
     void createDir(string path)
     {
-        INODE root_inode = this->createDirInode(path);
-        int index_livre = this->findFirstFreeInodeBlockIndex();
-        // cout << "index_livre: " << index_livre << endl;
+        INODE inode = this->createDirInode(path);
+        int inode_index_livre = this->findFirstFreeInodeBlockIndex();
+        // cout << "inode_index_livre: " << inode_index_livre << endl;
+
+        // aloca um bloco para o inode
+        int block_index_livre = this->findFirstFreeBlockInTheBitmap();
+        cout << "index livre do bloco reservado para o inode: " << (int)block_index_livre << " | " << path << endl;
+        // coloca esse bloco no direct block do INODE mas sem aumentar o tamanho
+        inode.DIRECT_BLOCKS[0] = (char)block_index_livre;
+        // seta o bitmap para 1 nesse bloco
+        this->setBitmapAtIndex(block_index_livre);
+
         // escreve o inode no arquivo
-        this->writeInodeAtIndex(index_livre, root_inode);
-        // seta o bitmap
-        this->setBitmapAtIndex(index_livre);
+        this->writeInodeAtIndex(inode_index_livre, inode);
     }
     void createFile(string file_name)
     {
@@ -377,8 +385,6 @@ public:
 
         // cria o inode da raiz
         this->createDir("/");
-        // seta a primeira pos do bitmap como 1 pra reservar pro /
-        this->setBitmapAtIndex(0);
     }
 
     void addFile(string full_path, string content)
@@ -398,5 +404,16 @@ public:
         // escreve o conteudo do arquivo no disco
         this->populateFile(file_name, content);
         // cout << "escreveu o conteudo do arquivo no disco" << endl;
+    }
+    void addDir(string full_path)
+    {
+        // cout << "full_path: " << full_path << endl;
+        string father_dir_name = this->getFatherDirNameFromFilePath(full_path);
+        string dir_name = full_path.substr(full_path.find_last_of("/") + 1, full_path.size());
+
+        this->createDir(dir_name);
+
+        // adiciona o dir na pasta
+        this->addFileToDir(father_dir_name, dir_name);
     }
 };
