@@ -155,7 +155,10 @@ private:
     void freeBitmapAtIndex(int index)
     {
         char *bitmap = this->getBitmap();
-        bitmap[(int)(index / 8.0)] |= (0 << (index % 8));
+        uint8_t mask = 0xFF;        // todos os bits são 1
+        mask ^= (1 << (index % 8)); // inverte o bit desejado para 0
+        cout << "mask: " << (uint8_t)mask << endl;
+        bitmap[index / 8] &= mask; // zera o bit desejado
         this->saveBitmap(bitmap);
     }
     string getFatherDirNameFromFilePath(string file_path)
@@ -415,5 +418,37 @@ public:
 
         // adiciona o dir na pasta
         this->addFileToDir(father_dir_name, dir_name);
+    }
+    void remove(string full_path)
+    {
+        string father_dir_name = this->getFatherDirNameFromFilePath(full_path);
+        string file_name = full_path.substr(full_path.find_last_of("/") + 1, full_path.size());
+
+        // descobre o index do inode do pai no index vector
+        int father_dir_inode_index = this->getInodeIndexByName(father_dir_name);
+        INODE father_dir_inode = this->getInodeAtIndex(father_dir_inode_index);
+
+        // descobre o index do inode do arquivo no index vector
+        int file_inode_index = this->getInodeIndexByName(file_name);
+        INODE file_inode = this->getInodeAtIndex(file_inode_index);
+
+        // remove o arquivo do inode do pai (diminui o tamanho)
+        father_dir_inode.SIZE--;
+
+        // libera no bitmap os blocos do arquivo
+        for (int i = 0; i < 3; i++)
+        {
+            if (file_inode.DIRECT_BLOCKS[i] != 0)
+            {
+                this->freeBitmapAtIndex((int)file_inode.DIRECT_BLOCKS[i]);
+            }
+        }
+
+        // escreve o inode do pai no arquivo
+        this->writeInodeAtIndex(father_dir_inode_index, father_dir_inode);
+
+        // escreve o inode do arquivo no arquivo (zerando tudo no inode)
+        file_inode = INODE{};
+        this->writeInodeAtIndex(file_inode_index, file_inode);
     }
 };

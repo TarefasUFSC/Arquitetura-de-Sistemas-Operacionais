@@ -56,21 +56,21 @@ TEST(FsTest, case6)
     ASSERT_EQ(printSha256("fs-case6.bin.solucao"), std::string("C5:D5:15:D8:2F:09:15:49:D9:A2:B5:58:36:E7:DC:28:E5:C4:14:02:1D:03:0E:A8:4E:40:EE:76:BF:05:F0:C6"));
 }
 
-// TEST(FsTest, case7)
-// {
-//     duplicate("fs-case7.bin", "fs-case7.bin.solucao");
+TEST(FsTest, case7)
+{
+    duplicate("fs-case7.bin", "fs-case7.bin.solucao");
 
-//     remove("fs-case7.bin.solucao", "/dec7556/t2.txt");
-//     ASSERT_EQ(printSha256("fs-case7.bin.solucao"), std::string("30:9A:B6:81:77:C1:FF:C9:7A:39:FD:77:DC:98:2A:47:C4:3A:31:A4:79:1A:49:FB:AB:8F:42:4B:66:7D:C0:8D"));
-// }
+    remove("fs-case7.bin.solucao", "/dec7556/t2.txt");
+    ASSERT_EQ(printSha256("fs-case7.bin.solucao"), std::string("30:9A:B6:81:77:C1:FF:C9:7A:39:FD:77:DC:98:2A:47:C4:3A:31:A4:79:1A:49:FB:AB:8F:42:4B:66:7D:C0:8D"));
+}
 
-// TEST(FsTest, case8)
-// {
-//     duplicate("fs-case8.bin", "fs-case8.bin.solucao");
+TEST(FsTest, case8)
+{
+    duplicate("fs-case8.bin", "fs-case8.bin.solucao");
 
-//     remove("fs-case8.bin.solucao", "/dec7556");
-//     ASSERT_EQ(printSha256("fs-case8.bin.solucao"), std::string("D4:63:6C:09:AD:B9:D3:68:6F:1B:02:79:78:38:50:C2:31:7D:E2:F1:C1:50:C9:13:7D:D9:0A:77:B5:27:4E:36"));
-// }
+    remove("fs-case8.bin.solucao", "/dec7556");
+    ASSERT_EQ(printSha256("fs-case8.bin.solucao"), std::string("D4:63:6C:09:AD:B9:D3:68:6F:1B:02:79:78:38:50:C2:31:7D:E2:F1:C1:50:C9:13:7D:D9:0A:77:B5:27:4E:36"));
+}
 
 // TEST(FsTest, case9)
 // {
@@ -88,13 +88,13 @@ TEST(FsTest, case6)
 //     ASSERT_EQ(printSha256("fs-case10.bin.solucao"), std::string("36:EB:18:B6:6F:9C:1E:20:B1:3A:86:81:A7:9D:0B:2E:A4:B8:A1:8E:92:B1:FB:B3:70:15:E8:9E:48:47:FC:53"));
 // }
 
-// TEST(FsTest, case11)
-// {
-//     duplicate("fs-case11.bin", "fs-case11.bin.solucao");
+TEST(FsTest, case11)
+{
+    duplicate("fs-case11.bin", "fs-case11.bin.solucao");
 
-//     remove("fs-case11.bin.solucao", "/a.txt");
-//     ASSERT_EQ(printSha256("fs-case11.bin.solucao"), std::string("FE:4B:F3:7F:F8:14:4C:24:DA:1E:94:04:4E:9B:02:E9:12:F1:23:7A:D3:EC:E6:DC:7A:65:0B:4B:37:A1:2E:30"));
-// }
+    remove("fs-case11.bin.solucao", "/a.txt");
+    ASSERT_EQ(printSha256("fs-case11.bin.solucao"), std::string("FE:4B:F3:7F:F8:14:4C:24:DA:1E:94:04:4E:9B:02:E9:12:F1:23:7A:D3:EC:E6:DC:7A:65:0B:4B:37:A1:2E:30"));
+}
 
 // TEST(FsTest, case12)
 // {

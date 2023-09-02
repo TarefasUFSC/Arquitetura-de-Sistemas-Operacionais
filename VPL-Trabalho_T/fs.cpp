@@ -53,7 +53,12 @@ void addDir(std::string fsFileName, std::string dirPath)
  * @param fsFileName arquivo que contém um sistema sistema de arquivos que simula EXT3.
  * @param path caminho completo do arquivo ou diretório a ser removido.
  */
-void remove(std::string fsFileName, std::string path) {}
+void remove(std::string fsFileName, std::string path)
+{
+    FileSystem fs(fsFileName);
+    fs.loadSystemVariables();
+    fs.remove(path);
+}
 
 /**
  * @brief Move um arquivo ou diretório em um sistema de arquivos que simula EXT3. O sistema já deve ter sido inicializado.
