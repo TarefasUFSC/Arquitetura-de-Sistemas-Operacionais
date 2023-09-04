@@ -1,7 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
-
+#include <vector>
 using namespace std;
 
 class FileSystem
@@ -97,7 +97,6 @@ private:
     int findFirstFreeBlockInTheBitmap()
     {
         char *bitmap = this->getBitmap();
-        cout << "bitmap: " << (int)bitmap[0] << endl;
         int index_livre = 0;
         // cout << "bitmapSize: " << this->bitmapSize << endl;
         // descobre a posição do primeiro bit 0 do bitmap
@@ -157,8 +156,7 @@ private:
         char *bitmap = this->getBitmap();
         uint8_t mask = 0xFF;        // todos os bits são 1
         mask ^= (1 << (index % 8)); // inverte o bit desejado para 0
-        cout << "mask: " << (uint8_t)mask << endl;
-        bitmap[index / 8] &= mask; // zera o bit desejado
+        bitmap[index / 8] &= mask;  // zera o bit desejado
         this->saveBitmap(bitmap);
     }
     string getFatherDirNameFromFilePath(string file_path)
@@ -284,7 +282,7 @@ private:
 
         // aloca um bloco para o inode
         int block_index_livre = this->findFirstFreeBlockInTheBitmap();
-        cout << "index livre do bloco reservado para o inode: " << (int)block_index_livre << " | " << path << endl;
+
         // coloca esse bloco no direct block do INODE mas sem aumentar o tamanho
         inode.DIRECT_BLOCKS[0] = (char)block_index_livre;
         // seta o bitmap para 1 nesse bloco
@@ -342,8 +340,84 @@ private:
     }
     void writeBlockAtIndex(int index, char *data)
     {
-        this->fsFile.seekg(3 + this->bitmapSize + this->indexVectorSize + index * this->blockSize);
+        this->fsFile.seekg(3 + this->bitmapSize + this->indexVectorSize + 1 + index * this->blockSize);
         this->fsFile.write(data, this->blockSize);
+    }
+    void writeByteAtBlockAndPosition(int index, int position, char data)
+    {
+        char *data_block = this->readDataBlockAtIndex(index);
+        data_block[position] = data;
+        this->writeDataBlockAtIndex(index, data_block);
+    }
+    void defragmentDir(int index_dir_inode, INODE &dir_inode)
+    {
+        vector<char> dir_content; // vetor que vai armazenar os dados e depois vai reorganizar em blocos novamente
+        for (int i = 0; i < 3; i++)
+        {
+            char *data_block = this->readDataBlockAtIndex((int)dir_inode.DIRECT_BLOCKS[i]);
+            // para cada byte do bloco verifica se o inode correspondente está vazio (IS_USED == 0)
+            for (int j = 0; j < this->blockSize; j++)
+            {
+                int inode_index = (int)data_block[j];
+                // pega o inode correspondente
+                INODE inode = this->getInodeAtIndex(inode_index);
+                // se o inode estiver vazio, não faz nada
+                // if (inode.IS_USED == 0)
+                // {
+                //     continue;
+                // }
+                // se o inode não estiver vazio, adiciona o dado no vetor dir_content
+                // somente se ele ja não estiver no vetor
+                bool found = false;
+                for (int k = 0; k < dir_content.size(); k++)
+                {
+                    if (dir_content[k] == inode_index)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    dir_content.push_back(inode_index);
+                }
+            }
+        }
+
+        // verifica a quantidade blocos necessários para armazenar o conteudo do dir
+        int qtd_necessaria = ceil((float)dir_content.size() / (float)this->blockSize);
+        // verifica a quantidade de blocos que o dir esta usando agora
+        int qtd_atual = ceil((float)dir_inode.SIZE / (float)this->blockSize);
+
+        // se a quantidade de blocos necessários for menor que a quantidade de blocos que o dir esta usando agora, libera os blocos que não serão mais usados no bitmap
+        if (qtd_necessaria < qtd_atual)
+        {
+            for (int i = qtd_necessaria; i < qtd_atual; i++)
+            {
+                this->freeBitmapAtIndex((int)dir_inode.DIRECT_BLOCKS[i]);
+            }
+        }
+        if (qtd_atual == 0)
+        {
+            return;
+        }
+        // remove do vetor os inodes que não estao mais sendo usados (IS_USED = 0)
+        vector<char> dir_content_aux;
+        for (int i = 0; i < dir_content.size(); i++)
+        {
+            INODE inode = this->getInodeAtIndex((int)dir_content[i]);
+            if (inode.IS_USED == 1)
+            {
+                dir_content_aux.push_back(dir_content[i]);
+            }
+        }
+        dir_content = dir_content_aux;
+
+        // coloca os dados do vetor nos blocos que ele tem disponivel agora
+        for (int i = 0; i < dir_content.size(); i++)
+        {
+            this->writeByteAtBlockAndPosition((int)dir_inode.DIRECT_BLOCKS[i], i % this->blockSize, dir_content[i]);
+        }
     }
 
 public:
@@ -432,9 +506,6 @@ public:
         int file_inode_index = this->getInodeIndexByName(file_name);
         INODE file_inode = this->getInodeAtIndex(file_inode_index);
 
-        // remove o arquivo do inode do pai (diminui o tamanho)
-        father_dir_inode.SIZE--;
-
         // libera no bitmap os blocos do arquivo
         for (int i = 0; i < 3; i++)
         {
@@ -444,11 +515,16 @@ public:
             }
         }
 
-        // escreve o inode do pai no arquivo
-        this->writeInodeAtIndex(father_dir_inode_index, father_dir_inode);
-
         // escreve o inode do arquivo no arquivo (zerando tudo no inode)
         file_inode = INODE{};
         this->writeInodeAtIndex(file_inode_index, file_inode);
+        // remove o arquivo do inode do pai (diminui o tamanho)
+        father_dir_inode.SIZE--;
+
+        // defragmenta o dir
+        this->defragmentDir(father_dir_inode_index, father_dir_inode);
+
+        // escreve o inode do pai no arquivo
+        this->writeInodeAtIndex(father_dir_inode_index, father_dir_inode);
     }
 };
