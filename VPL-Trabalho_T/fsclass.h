@@ -59,6 +59,12 @@ private:
     }
     INODE populateNameOnInode(INODE inode, string name)
     {
+        // zera tudo
+        for (int i = 0; i < 10; i++)
+        {
+            inode.NAME[i] = 0;
+        }
+
         for (int i = 0; i < name.size(); i++)
         {
             inode.NAME[i] = name[i];
@@ -396,11 +402,11 @@ private:
     }
     void writeByteVectorIntoBlocks(vector<char> byte_vector, INODE inode)
     {
-        cout << "Escrevendo o vetor de bytes no inode: " << inode.NAME << " com tamanho: " << byte_vector.size() << endl;
+        // cout << "Escrevendo o vetor de bytes no inode: " << inode.NAME << " com tamanho: " << byte_vector.size() << endl;
         // coloca os dados do vetor nos blocos que ele tem disponivel agora
         for (int i = 0; i < byte_vector.size(); i++)
         {
-            cout << "Escrevendo byte: " << i << ", no bloco: " << (int)(i / this->blockSize) << ", na posição: " << (i % this->blockSize) << " | conteudo: " << (int)byte_vector[i] << endl;
+            // cout << "Escrevendo byte: " << i << ", no bloco: " << (int)(i / this->blockSize) << ", na posição: " << (i % this->blockSize) << " | conteudo: " << (int)byte_vector[i] << endl;
 
             this->writeByteAtBlockAndPosition((int)inode.DIRECT_BLOCKS[(int)(i / 3)], i % this->blockSize, byte_vector[i]);
         }
@@ -471,24 +477,24 @@ private:
         dir_content = tmp_char_vector;
         int antiga_qtd_necessaria = ceil((float)father_dir_inode.SIZE / (float)this->blockSize);
 
-        cout << "A antiga qtd necessaria é: " << antiga_qtd_necessaria << endl;
+        // cout << "A antiga qtd necessaria é: " << antiga_qtd_necessaria << endl;
 
         father_dir_inode.SIZE--;
 
         // recalcula a quantidade de blocos necessários para armazenar o conteudo do dir
         int nova_qtd_necessaria = ceil((float)dir_content.size() / (float)this->blockSize);
 
-        cout << "A nova quantidade necessária é: " << nova_qtd_necessaria << endl;
+        // cout << "A nova quantidade necessária é: " << nova_qtd_necessaria << endl;
 
         // verifica se houve mudança na qtd de blocos necessários
         if ((nova_qtd_necessaria != antiga_qtd_necessaria) && (nova_qtd_necessaria != 0))
         {
-            cout << "A quantidade necessária de blocos mudou" << endl;
+            // cout << "A quantidade necessária de blocos mudou" << endl;
             ;
             // se houve, libera os blocos que não serão mais usados no bitmap
             for (int i = nova_qtd_necessaria; i < antiga_qtd_necessaria; i++)
             {
-                cout << "Liberando no bitmap o bloco: " << (int)father_dir_inode.DIRECT_BLOCKS[i] << endl;
+                // cout << "Liberando no bitmap o bloco: " << (int)father_dir_inode.DIRECT_BLOCKS[i] << endl;
                 this->freeBitmapAtIndex((int)father_dir_inode.DIRECT_BLOCKS[i]);
                 father_dir_inode.DIRECT_BLOCKS[i] = 0;
             }
@@ -611,34 +617,45 @@ public:
     void move(string old_full_path, string new_full_path)
     {
 
-        cout << "Movendo o arquivo: " << old_full_path << " para: " << new_full_path << endl;
+        // cout << "Movendo o arquivo: " << old_full_path << " para: " << new_full_path << endl;
         int a;
-        cin >> a;
 
         // pega o nome do arquivo
-        string file_name = old_full_path.substr(old_full_path.find_last_of("/") + 1, old_full_path.size());
+        string old_file_name = old_full_path.substr(old_full_path.find_last_of("/") + 1, old_full_path.size());
+
+        string file_name = new_full_path.substr(new_full_path.find_last_of("/") + 1, new_full_path.size());
+
         // pega o nome do novo pai
         string new_father_dir_name = this->getFatherDirNameFromFilePath(new_full_path);
         // pega o nome do pai antigo
         string old_father_dir_name = this->getFatherDirNameFromFilePath(old_full_path);
 
         // pega o inode do arquivo
-        int file_inode_index = this->getInodeIndexByName(file_name);
+        int file_inode_index = this->getInodeIndexByName(old_file_name);
         INODE file_inode = this->getInodeAtIndex(file_inode_index);
 
+        if (old_file_name != file_name)
+        {
+            // cout << "O nome do arquivo mudou" << endl;
+            // troca o nome do arquivo no inode
+            file_inode = this->populateNameOnInode(file_inode, file_name);
+            // salva o inode no arquivo
+            this->writeInodeAtIndex(file_inode_index, file_inode);
+            // cout << "nome do arquivo trocado" << endl;
+        }
+
         // pega o conteudo do arquivo
+        // cout << "pegando o conteudo do arquivo" << endl;
         string file_content = this->getFileContent(file_inode);
         // cout << "file_content: " << file_content << endl;
 
         // insere o indice do inode do arquivo no novo pai
+        // cout << "inserindo o indice do inode do arquivo no novo pai" << endl;
         this->addFileToDir(new_father_dir_name, file_name);
 
         // remove o indice do inode do arquivo do pai antigo
 
-        cin >> a;
+        // cout << "removendo o indice do inode do arquivo do pai antigo" << endl;
         this->removeFileRefFromDir(old_father_dir_name, file_inode_index);
-
-        cin >> a;
-        INODE old_father_dir_inode = this->getInodeAtIndex(this->getInodeIndexByName(old_father_dir_name));
     }
 };
