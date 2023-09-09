@@ -66,4 +66,9 @@ void remove(std::string fsFileName, std::string path)
  * @param oldPath caminho completo do arquivo ou diretório a ser movido.
  * @param newPath novo caminho completo do arquivo ou diretório.
  */
-void move(std::string fsFileName, std::string oldPath, std::string newPath) {}
+void move(std::string fsFileName, std::string oldPath, std::string newPath)
+{
+    FileSystem fs(fsFileName);
+    fs.loadSystemVariables();
+    fs.move(oldPath, newPath);
+}

@@ -106,7 +106,7 @@ private:
             {
                 if ((bitmap[i] & (1 << j)) == 0)
                 {
-                    index_livre = i * 8 + j;
+                    index_livre = i * 4 + j;
                     return index_livre;
                 }
             }
@@ -171,14 +171,7 @@ private:
     INODE appendDataIntoInode(INODE inode, char data)
     {
         // roda os direct block até achar um vazio e escreve o data
-        for (int i = 0; i < 3; i++)
-        {
-            if (inode.DIRECT_BLOCKS[i] == 0)
-            {
-                inode.DIRECT_BLOCKS[i] = data;
-                break;
-            }
-        }
+        inode.DIRECT_BLOCKS[(int)ceil((inode.SIZE + 1) / 3)] = data;
         return inode;
     }
     char *readDataBlockAtIndex(int index)
@@ -195,6 +188,7 @@ private:
     }
     INODE insertDataIntoInodeBlock(INODE inode, char data)
     {
+        // cout << "inserindo o dado: " << data << " no inode: " << inode.NAME << endl;
         // verifica se a quantidade atual + 1 precisa alocar mais um bloco
         int new_qtd_necessaria = ceil((float)(inode.SIZE + 1) / (float)this->blockSize);
         int old_qtd_necessaria = ceil((float)(inode.SIZE) / (float)this->blockSize);
@@ -214,22 +208,8 @@ private:
 
         // cout << "last_block_index: " << last_block_index << endl;
         // cout << "data: " << data << " | " << (int)data << endl
-        // << endl;
-        char *data_block = this->readDataBlockAtIndex(last_block_index);
-        // encontra o primeiro byte vazio
-        int first_empty_byte = 0;
-        for (int i = 0; i < this->blockSize; i++)
-        {
-            if (data_block[i] == 0)
-            {
-                first_empty_byte = i;
-                break;
-            }
-        }
-        // escreve o dado no primeiro byte vazio
-        data_block[first_empty_byte] = data;
-        // escreve o bloco de dados no arquivo
-        this->writeDataBlockAtIndex(last_block_index, data_block);
+        //  << endl;
+        this->writeByteAtBlockAndPosition(last_block_index, inode.SIZE % this->blockSize, data);
         inode.SIZE++;
         return inode;
     }
@@ -412,12 +392,113 @@ private:
             }
         }
         dir_content = dir_content_aux;
-
+        this->writeByteVectorIntoBlocks(dir_content, dir_inode);
+    }
+    void writeByteVectorIntoBlocks(vector<char> byte_vector, INODE inode)
+    {
+        cout << "Escrevendo o vetor de bytes no inode: " << inode.NAME << " com tamanho: " << byte_vector.size() << endl;
         // coloca os dados do vetor nos blocos que ele tem disponivel agora
+        for (int i = 0; i < byte_vector.size(); i++)
+        {
+            cout << "Escrevendo byte: " << i << ", no bloco: " << (int)(i / this->blockSize) << ", na posição: " << (i % this->blockSize) << " | conteudo: " << (int)byte_vector[i] << endl;
+
+            this->writeByteAtBlockAndPosition((int)inode.DIRECT_BLOCKS[(int)(i / 3)], i % this->blockSize, byte_vector[i]);
+        }
+    }
+    vector<char> getBytesFromInodeDirectBlocks(INODE inode)
+    {
+        vector<char> bytes;
+        int qtd_bytes = inode.SIZE;
+        int qtd_blocos = ceil((float)qtd_bytes / (float)this->blockSize);
+        for (int i = 0; i < qtd_blocos; i++)
+        {
+            char *data_block = this->readDataBlockAtIndex((int)inode.DIRECT_BLOCKS[i]);
+            for (int j = 0; j < this->blockSize; j++)
+            {
+                if (data_block[j] != 0)
+                {
+                    bytes.push_back(data_block[j]);
+                }
+            }
+        }
+
+        // o vector de bytes talvez esteja com mais bytes do que o inode tem pq o blocksize buga a conta, eu vou remover os bytes que não fazem parte do inode a partir do fim
+        int qtd_bytes_excedentes = bytes.size() - qtd_bytes;
+        for (int i = 0; i < qtd_bytes_excedentes; i++)
+        {
+            bytes.pop_back();
+        }
+        return bytes;
+    }
+    string getFileContent(INODE file_inode)
+    {
+        string content = "";
+        for (int i = 0; i < 3; i++)
+        {
+            if (file_inode.DIRECT_BLOCKS[i] != 0)
+            {
+                char *data_block = this->readDataBlockAtIndex((int)file_inode.DIRECT_BLOCKS[i]);
+                for (int j = 0; j < this->blockSize; j++)
+                {
+                    if (data_block[j] != 0)
+                    {
+                        content += data_block[j];
+                    }
+                }
+            }
+        }
+        return content;
+    }
+    void removeFileRefFromDir(string path, int file_inode_index)
+    {
+        // descobre o index do inode do pai no index vector
+        int father_dir_inode_index = this->getInodeIndexByName(path);
+        INODE father_dir_inode = this->getInodeAtIndex(father_dir_inode_index);
+
+        INODE file_inode = this->getInodeAtIndex(file_inode_index);
+
+        vector<char> dir_content = this->getBytesFromInodeDirectBlocks(father_dir_inode);
+
+        // remove o byte cujo o valor é o index do inode do arquivo
+        vector<char> tmp_char_vector;
         for (int i = 0; i < dir_content.size(); i++)
         {
-            this->writeByteAtBlockAndPosition((int)dir_inode.DIRECT_BLOCKS[i], i % this->blockSize, dir_content[i]);
+            if (dir_content[i] != file_inode_index)
+            {
+                tmp_char_vector.push_back(dir_content[i]);
+            }
         }
+        dir_content = tmp_char_vector;
+        int antiga_qtd_necessaria = ceil((float)father_dir_inode.SIZE / (float)this->blockSize);
+
+        cout << "A antiga qtd necessaria é: " << antiga_qtd_necessaria << endl;
+
+        father_dir_inode.SIZE--;
+
+        // recalcula a quantidade de blocos necessários para armazenar o conteudo do dir
+        int nova_qtd_necessaria = ceil((float)dir_content.size() / (float)this->blockSize);
+
+        cout << "A nova quantidade necessária é: " << nova_qtd_necessaria << endl;
+
+        // verifica se houve mudança na qtd de blocos necessários
+        if ((nova_qtd_necessaria != antiga_qtd_necessaria) && (nova_qtd_necessaria != 0))
+        {
+            cout << "A quantidade necessária de blocos mudou" << endl;
+            ;
+            // se houve, libera os blocos que não serão mais usados no bitmap
+            for (int i = nova_qtd_necessaria; i < antiga_qtd_necessaria; i++)
+            {
+                cout << "Liberando no bitmap o bloco: " << (int)father_dir_inode.DIRECT_BLOCKS[i] << endl;
+                this->freeBitmapAtIndex((int)father_dir_inode.DIRECT_BLOCKS[i]);
+                father_dir_inode.DIRECT_BLOCKS[i] = 0;
+            }
+        }
+
+        // escreve o inode do pai no arquivo
+        this->writeInodeAtIndex(father_dir_inode_index, father_dir_inode);
+
+        // reescreve o dir
+        this->writeByteVectorIntoBlocks(dir_content, father_dir_inode);
     }
 
 public:
@@ -526,5 +607,38 @@ public:
 
         // escreve o inode do pai no arquivo
         this->writeInodeAtIndex(father_dir_inode_index, father_dir_inode);
+    }
+    void move(string old_full_path, string new_full_path)
+    {
+
+        cout << "Movendo o arquivo: " << old_full_path << " para: " << new_full_path << endl;
+        int a;
+        cin >> a;
+
+        // pega o nome do arquivo
+        string file_name = old_full_path.substr(old_full_path.find_last_of("/") + 1, old_full_path.size());
+        // pega o nome do novo pai
+        string new_father_dir_name = this->getFatherDirNameFromFilePath(new_full_path);
+        // pega o nome do pai antigo
+        string old_father_dir_name = this->getFatherDirNameFromFilePath(old_full_path);
+
+        // pega o inode do arquivo
+        int file_inode_index = this->getInodeIndexByName(file_name);
+        INODE file_inode = this->getInodeAtIndex(file_inode_index);
+
+        // pega o conteudo do arquivo
+        string file_content = this->getFileContent(file_inode);
+        // cout << "file_content: " << file_content << endl;
+
+        // insere o indice do inode do arquivo no novo pai
+        this->addFileToDir(new_father_dir_name, file_name);
+
+        // remove o indice do inode do arquivo do pai antigo
+
+        cin >> a;
+        this->removeFileRefFromDir(old_father_dir_name, file_inode_index);
+
+        cin >> a;
+        INODE old_father_dir_inode = this->getInodeAtIndex(this->getInodeIndexByName(old_father_dir_name));
     }
 };
