@@ -18,10 +18,12 @@ public:
     int bitmapSize;
     int indexVectorSize;
     int blockVectorSize;
-
+    char *bitmap = NULL;
+    char *tmpDataBlock = NULL;
     // metodos
 private:
-    void loadFileSystem()
+    void
+    loadFileSystem()
     {
         // Tenta abrir o arquivo sem truncar
         this->fsFile.open(fsFileName, ios::out | ios::in | ios::binary);
@@ -93,16 +95,18 @@ private:
 
         return new_inode;
     }
-    char *getBitmap()
+    void getBitmap()
     {
-        char *bitmap = new char[this->bitmapSize];
+        if (this->bitmap == NULL)
+        {
+            return;
+        }
         this->fsFile.seekg(3);
-        this->fsFile.read(bitmap, this->bitmapSize);
-        return bitmap;
+        this->fsFile.read(this->bitmap, this->bitmapSize);
     }
     int findFirstFreeBlockInTheBitmap()
     {
-        char *bitmap = this->getBitmap();
+        this->getBitmap();
         int index_livre = 0;
         // cout << "bitmapSize: " << this->bitmapSize << endl;
         // descobre a posição do primeiro bit 0 do bitmap
@@ -110,7 +114,7 @@ private:
         {
             for (int j = 0; j < 8; j++)
             {
-                if ((bitmap[i] & (1 << j)) == 0)
+                if ((this->bitmap[i] & (1 << j)) == 0)
                 {
                     index_livre = i * 4 + j;
                     return index_livre;
@@ -151,19 +155,19 @@ private:
     }
     void setBitmapAtIndex(int index)
     {
-        char *bitmap = this->getBitmap();
+        this->getBitmap();
         // cout << "old bitmap: " << (int)bitmap[0] << endl;
-        bitmap[(int)(index / 8.0)] |= (1 << (index % 8));
+        this->bitmap[(int)(index / 8.0)] |= (1 << (index % 8));
         // cout << "new bitmap: " << (int)bitmap[0] << endl;
-        this->saveBitmap(bitmap);
+        this->saveBitmap(this->bitmap);
     }
     void freeBitmapAtIndex(int index)
     {
-        char *bitmap = this->getBitmap();
-        uint8_t mask = 0xFF;        // todos os bits são 1
-        mask ^= (1 << (index % 8)); // inverte o bit desejado para 0
-        bitmap[index / 8] &= mask;  // zera o bit desejado
-        this->saveBitmap(bitmap);
+        this->getBitmap();
+        uint8_t mask = 0xFF;             // todos os bits são 1
+        mask ^= (1 << (index % 8));      // inverte o bit desejado para 0
+        this->bitmap[index / 8] &= mask; // zera o bit desejado
+        this->saveBitmap(this->bitmap);
     }
     string getFatherDirNameFromFilePath(string file_path)
     {
@@ -182,10 +186,9 @@ private:
     }
     char *readDataBlockAtIndex(int index)
     {
-        char *data_block = new char[this->blockSize];
         this->fsFile.seekg(3 + this->bitmapSize + this->indexVectorSize + 1 + index * this->blockSize);
-        this->fsFile.read(data_block, this->blockSize);
-        return data_block;
+        this->fsFile.read(this->tmpDataBlock, this->blockSize);
+        return this->tmpDataBlock;
     }
     void writeDataBlockAtIndex(int index, char *data)
     {
@@ -508,10 +511,25 @@ private:
     }
 
 public:
+    FileSystem(const FileSystem &) = delete;            // Construtor de cópia
+    FileSystem &operator=(const FileSystem &) = delete; // Operador de atribuição de cópia
+
     ~FileSystem()
     {
+        if (this->bitmap != NULL)
+        {
+
+            delete bitmap;
+            this->bitmap = NULL;
+        }
+        if (this->tmpDataBlock != NULL)
+        {
+            delete tmpDataBlock;
+            this->tmpDataBlock = NULL;
+        }
         this->fsFile.close();
     }
+
     FileSystem(string fs_file_name)
     {
         fsFileName = fs_file_name;
@@ -531,6 +549,17 @@ public:
         this->bitmapSize = ceil((float)this->qtdBlocks / 8.0);
         this->indexVectorSize = sizeof(INODE) * this->qtdInodes;
         this->blockVectorSize = this->qtdBlocks * this->blockSize;
+
+        if (this->bitmap != NULL)
+        {
+            delete this->bitmap;
+        }
+        this->bitmap = new char[this->bitmapSize];
+        if (this->tmpDataBlock != NULL)
+        {
+            delete this->tmpDataBlock;
+        }
+        this->tmpDataBlock = new char[this->blockSize];
     }
     void createFileSystem(int block_size, int num_blocks, int num_inodes)
     {
@@ -540,6 +569,16 @@ public:
         this->bitmapSize = ceil((float)num_blocks / 8.0);
         this->indexVectorSize = sizeof(INODE) * num_inodes;
         this->blockVectorSize = num_blocks * block_size;
+        if (this->bitmap != NULL)
+        {
+            delete this->bitmap;
+        }
+        this->bitmap = new char[this->bitmapSize];
+        if (this->tmpDataBlock != NULL)
+        {
+            delete this->tmpDataBlock;
+        }
+        this->tmpDataBlock = new char[this->blockSize];
 
         // cria o arquivo só com zeros do tamanho correto
         this->wipeFS();
