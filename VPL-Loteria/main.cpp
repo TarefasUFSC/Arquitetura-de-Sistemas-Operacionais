@@ -75,6 +75,11 @@ void loteria(int pid)
             index++;
             char buffer[1024] = {0};
             int val_read = read(new_socket, buffer, 1024);
+            if (val_read < 0)
+            {
+                perror("Erro ao ler mensagem");
+                exit(EXIT_FAILURE);
+            }
             // printf("msg lida no serv: %s\n", buffer);
             lista_pids_jogadores[index] = atoi(buffer);
         }
@@ -141,6 +146,11 @@ void jogador(int pid)
 
     char buffer[1024] = {0};
     int val_read = read(client_fd, buffer, 1024);
+    if (val_read < 0)
+    {
+        perror("Erro ao ler mensagem");
+        exit(EXIT_FAILURE);
+    }
 
     // verifica se o pid sorteado é o dele
     if (atoi(buffer) == atoi(str_pid))
